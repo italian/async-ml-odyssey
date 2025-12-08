@@ -5,4 +5,6 @@ description = "Educational simulation of induction motors and ML evolution"
 authors = "italian"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "flask",
+]
