@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Эксперимент 1: Взаимоиндукция</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e6f8e6;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Центрируем всё тело по горизонтали */
+            min-height: 100vh;
+        }
+
+        /* КОНТЕЙНЕР ЗАГОЛОВКА (Исправление центровки) */
+        .header-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 40px;
+            width: 100%;
+        }
+
+        h1 { 
+            border-bottom: 1px solid #444; 
+            padding-bottom: 20px; 
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .mission-goal {
+            color: #bbfebb;
+            font-size: 1.1em;
+            border: 1px dashed #333;
+            padding: 10px 20px;
+            border-radius: 5px;
+            max-width: 600px;
+            text-align: center;
+        }
+        
+        /* СТЕНД */
+        .lab-bench {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 60px;
+            flex-wrap: wrap;
+        }
+
+        .device {
+            border: 2px solid #555;
+            padding: 25px;
+            border-radius: 8px;
+            width: 300px;
+            background-color: #1a1a1a;
+            box-shadow: 0 0 20px rgba(0,0,0,0.7);
+            position: relative;
+        }
+
+        .device-label {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #121212;
+            padding: 0 10px;
+            color: #fff;
+            font-weight: bold;
+            letter-spacing: 1px;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+
+        .coil-container {
+            position: relative;
+            height: 80px;
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* Сердечник внутри */
+        .iron-core-inner {
+            width: 180px;
+            height: 20px;
+            background: linear-gradient(to bottom, #777, #bbb, #777);
+            position: absolute;
+            z-index: 1;
+            border-radius: 4px;
+            box-shadow: inset 0 0 5px #000;
+        }
+
+        /* Обмотка */
+        .winding {
+            width: 140px;
+            height: 50px;
+            z-index: 2;
+            background: repeating-linear-gradient(
+                60deg,
+                rgba(0,0,0,0.3),
+                rgba(0,0,0,0.3) 5px,
+                #b87333 5px,
+                #b87333 10px
+            );
+            border: 2px solid #8a5a2b;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
+            font-weight: bold;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        .status-label { color: #ccc; }
+        
+        .status-off { color: #ff6666; font-weight: bold; }
+        .status-on { color: #66ff66; font-weight: bold; text-shadow: 0 0 5px #00ff00; }
+        
+        .btn {
+            background-color: #222;
+            color: #fff;
+            border: 1px solid #fff;
+            padding: 15px 0;
+            width: 100%;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: 1.1em;
+            transition: 0.1s;
+            font-weight: bold;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn:hover { background-color: #e6f8e6; color: #000; }
+        
+        .display-screen {
+            background-color: #000;
+            border: 2px inset #555;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            height: 80px; /* Фиксированная высота, чтобы не прыгало */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #galvanometer-display {
+            font-size: 2.5em;
+            margin: 0;
+            color: #e6f8e6;
+            transition: color 0.2s;
+        }
+        #message-display {
+            height: 20px;
+            color: #ffcc00;
+            font-weight: bold;
+            margin-top: 5px;
+            font-size: 0.8em;
+        }
+
+        .back-link { 
+            display: inline-block; 
+            margin-top: 60px; 
+            color: #fff; 
+            text-decoration: none; 
+            border-bottom: 2px solid #555;
+            padding-bottom: 5px;
+            font-size: 1.1em;
+        }
+        .back-link:hover { border-bottom-color: #e6f8e6; color: #e6f8e6; }
+
+        /* Стили модального окна */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85); /* Затемнение фона */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Поверх всего */
+            backdrop-filter: blur(5px); /* Размытие фона (красиво!) */
+        }
+
+        .modal-content {
+            background-color: #1a1a1a;
+            border: 2px solid #66ff66; /* Ярко-зеленая рамка победы */
+            padding: 40px;
+            width: 400px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(102, 255, 102, 0.3);
+            border-radius: 10px;
+            animation: popIn 0.3s ease-out;
+        }
+
+        .modal-content h2 {
+            color: #66ff66;
+            margin-top: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .modal-body {
+            color: #e6f8e6;
+            margin: 20px 0;
+            line-height: 1.5;
+        }
+
+        /* Анимация появления */
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <h1>ЭКСПЕРИМЕНТ №1: ЗАГАДОЧНЫЙ ИМПУЛЬС</h1>
+        <div class="mission-goal">
+            Цель: Понять, что постоянный ток не рождает ток.
+        </div>
+    </div>
+    <div id="progress-box" style="margin-bottom: 20px; color: #888; font-size: 0.9em;">
+        Прогресс исследований: <span id="counter-display" style="color: #e6f8e6; font-weight: bold;">0</span>/3
+    </div>
+
+    <div class="lab-bench">
+        <div class="device">
+            <div class="device-label">ПЕРВИЧНАЯ ЦЕПЬ</div>
+            <div class="coil-container">
+                <div class="iron-core-inner"></div>
+                <div class="winding">КАТУШКА A</div>
+            </div>
+
+            <div class="status-row">
+                <span class="status-label">Батарея:</span>
+                <span class="status-on">ПОДКЛЮЧЕНА</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Рубильник:</span>
+                <span id="switch-status" class="status-off">РАЗОМКНУТ</span>
+            </div>
+            
+            <button class="btn" onclick="toggleSwitch()">⚡ Щелкнуть рубильником</button>
+        </div>
+
+        <div class="device">
+            <div class="device-label">ВТОРИЧНАЯ ЦЕПЬ</div>
+            <div class="coil-container">
+                <div class="iron-core-inner"></div>
+                <div class="winding">КАТУШКА B</div>
+            </div>
+
+            <div class="status-row">
+                <span class="status-label">Детектор:</span>
+                <span>Гальванометр</span>
+            </div>
+            
+            <div class="display-screen">
+                <h2 id="galvanometer-display">0.0 В</h2>
+                <span id="message-display"></span>
+            </div>
+        </div>
+    </div>
+
+    <a href="/" class="back-link">← Вернуться в Меню Лаборатории</a>
+
+    <div id="victory-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h2>🎉 ЗАКОН ОТКРЫТ!</h2>
+            <div class="modal-body">
+                <p>Вы доказали: ток возникает только при <strong>изменении</strong> магнитного поля.</p>
+                <p>Доступ к <strong>Эксперименту №2</strong> разблокирован.</p>
+            </div>
+            <button class="btn" onclick="window.location.href='/'">Вернуться в Меню</button>
+        </div>
+    </div>
+
+    <script>
+        async function toggleSwitch() {
+            // 1. Отправляем запрос на сервер (Python)
+            try {
+                const response = await fetch('/api/toggle_switch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+
+                // 2. Обновляем интерфейс по данным от Python
+                updateUI(data);
+
+            } catch (error) {
+                console.error('Ошибка связи с лабораторией:', error);
+                alert("Ошибка связи с сервером!");
+            }
+        }
+
+        function updateUI(data) {
+            // 1. Обновляем Рубильник
+            const switchEl = document.getElementById('switch-status');
+            if (data.is_on) {
+                switchEl.innerHTML = "ЗАМКНУТ";
+                switchEl.className = "status-on";
+                switchEl.style.color = "#66ff66";
+            } else {
+                switchEl.innerHTML = "РАЗОМКНУТ";
+                switchEl.className = "status-off";
+                switchEl.style.color = "#ff6666";
+            }
+
+            // 2. Обновляем Гальванометр
+            const voltEl = document.getElementById('galvanometer-display');
+            const msgEl = document.getElementById('message-display');
+            
+            voltEl.innerText = data.voltage.toFixed(1) + " В";
+
+            if (data.voltage !== 0) {
+                voltEl.style.color = data.voltage > 0 ? "#66ff66" : "#ff6666";
+                msgEl.innerText = data.message;
+                
+                // Анимация затухания
+                setTimeout(() => {
+                    voltEl.innerText = "0.0 В";
+                    voltEl.style.color = "#e6f8e6";
+                    msgEl.innerText = "";
+                }, 800);
+            }
+
+            // 3. НОВОЕ: Обновляем счетчик
+            // Проверка на случай, если в Python забыли добавить ключи в return
+            if (data.success_count !== undefined) {
+                const counterEl = document.getElementById('counter-display');
+                counterEl.innerText = data.success_count;
+            }
+
+            // 4. НОВОЕ: Проверка победы
+            if (data.is_completed) {
+                // Небольшая задержка, чтобы игрок успел увидеть всплеск
+                setTimeout(() => {
+                    document.getElementById('victory-modal').style.display = 'flex';
+                    
+                    // Визуально открываем "путь назад"
+                    const backLink = document.querySelector('.back-link');
+                    backLink.style.color = "#66ff66";
+                    backLink.style.borderColor = "#66ff66";
+                    backLink.innerText = "← Вернуться в Меню (ДОСТУПЕН НОВЫЙ УРОВЕНЬ)";
+                }, 500);
+            }
+        }
+    </script>
+
+</body>
+</html>
