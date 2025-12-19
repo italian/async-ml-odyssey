@@ -153,7 +153,7 @@
         .modal-body { color: #e6f8e6; margin: 20px 0; line-height: 1.5; }
         @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
-        /* --- НОВЫЕ СТИЛИ: ГАЛЬВАНОМЕТР --- */
+        /* --- СТИЛИ ГАЛЬВАНОМЕТРА --- */
         .display-screen {
             background-color: #000;
             border: 2px inset #555;
@@ -184,6 +184,10 @@
         
         #galvanometer-display { font-size: 1.4em; margin: 0; color: #e6f8e6; z-index: 4; font-weight: bold; transition: color 0.2s; }
         #message-display { height: 20px; color: #ffcc00; font-weight: bold; margin-top: 5px; font-size: 0.8em; }
+
+        /* --- НОВЫЕ СТИЛИ: СЛАЙДЕР --- */
+        .slider-container { margin: 15px 0; border-top: 1px dashed #444; padding-top: 10px; width: 100%; }
+        input[type=range] { width: 100%; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -200,20 +204,15 @@
     <div class="lab-bench">
         <div class="device">
             <div class="device-label">ПЕРВИЧНАЯ ЦЕПЬ</div>
-            <div class="coil-container">
-                <div class="iron-core-inner"></div>
-                <div class="winding">КАТУШКА A</div>
-            </div>
-
-            <div class="status-row">
-                <span class="status-label">Батарея:</span>
-                <span class="status-on">ПОДКЛЮЧЕНА</span>
-            </div>
-            <div class="status-row">
-                <span class="status-label">Рубильник:</span>
-                <span id="switch-status" class="status-off">РАЗОМКНУТ</span>
+            <div class="coil-container"><div class="iron-core-inner"></div><div class="winding">КАТУШКА A</div></div>
+            <div class="status-row"><span class="status-label">Батарея:</span><span class="status-on">ПОДКЛЮЧЕНА</span></div>
+            
+            <div class="slider-container">
+                <label for="voltage-slider">Мощность: <span id="voltage-val">10</span>В</label>
+                <input type="range" id="voltage-slider" min="1" max="100" value="10" oninput="document.getElementById('voltage-val').innerText = this.value">
             </div>
             
+            <div class="status-row"><span class="status-label">Рубильник:</span><span id="switch-status" class="status-off">РАЗОМКНУТ</span></div>
             <button class="btn" onclick="toggleSwitch()">⚡ Щелкнуть рубильником</button>
         </div>
 
@@ -255,15 +254,17 @@
 
     <script>
         async function toggleSwitch() {
-            // 1. Отправляем запрос на сервер (Python)
+            // --- НОВОЕ: Берем значение слайдера ---
+            const batteryLevel = document.getElementById('voltage-slider').value;
+            
             try {
                 const response = await fetch('/api/toggle_switch', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    // --- НОВОЕ: Отправляем JSON с напряжением ---
+                    body: JSON.stringify({ battery_voltage: parseInt(batteryLevel) })
                 });
                 const data = await response.json();
-
-                // 2. Обновляем интерфейс по данным от Python
                 updateUI(data);
             } catch (error) {
                 console.error('Ошибка связи с лабораторией:', error);
@@ -272,7 +273,6 @@
         }
 
         function updateUI(data) {
-            // 1. Рубильник
             const switchEl = document.getElementById('switch-status');
             if (data.is_on) {
                 switchEl.innerHTML = "ЗАМКНУТ";
@@ -284,17 +284,17 @@
                 switchEl.style.color = "#ff6666";
             }
 
-            // 2. Гальванометр (Текст и Стрелка)
             const voltEl = document.getElementById('galvanometer-display');
             const msgEl = document.getElementById('message-display');
             const needleEl = document.getElementById('needle');
 
-            // --- АНИМАЦИЯ СТРЕЛКИ ---
+            // --- ОБНОВЛЕННАЯ ЛОГИКА АНИМАЦИИ ---
             let angle = 0;
             if (data.voltage !== 0) {
-                // Если есть напряжение, отклоняем стрелку.
-                // Пока жестко 45 градусов, т.к. напряжение всегда 10В
-                angle = (data.voltage / 10.0) * 45;
+                // Масштабируем: Макс 100В = макс отклонение (45 град)
+                angle = (data.voltage / 100.0) * 45;
+                // Мин. отклонение для визуальности (чтобы при 1В стрелка хоть чуть дернулась)
+                if (Math.abs(angle) < 5 && Math.abs(angle) > 0) angle = angle > 0 ? 5 : -5;
             }
             needleEl.style.transform = `translateX(-50%) rotate(${angle}deg)`;
             // ------------------------
@@ -305,12 +305,10 @@
                 voltEl.style.color = data.voltage > 0 ? "#66ff66" : "#ff6666";
                 msgEl.innerText = data.message;
                 
-                // Анимация затухания
                 setTimeout(() => {
                     voltEl.innerText = "0.0 В";
                     voltEl.style.color = "#e6f8e6";
                     msgEl.innerText = "";
-                    // Возвращаем стрелку
                     needleEl.style.transform = `translateX(-50%) rotate(0deg)`;
                 }, 800);
             }
@@ -322,8 +320,6 @@
             if (data.is_completed) {
                 setTimeout(() => {
                     document.getElementById('victory-modal').style.display = 'flex';
-                    
-                    // Визуально открываем "путь назад"
                     const backLink = document.querySelector('.back-link');
                     backLink.style.color = "#66ff66";
                     backLink.style.borderColor = "#66ff66";

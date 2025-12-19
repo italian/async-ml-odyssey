@@ -19,6 +19,11 @@ def experiment_one():
 
 @app.route('/api/toggle_switch', methods=['POST'])
 def api_toggle_switch():
+    # --- НОВОЕ: Получаем данные от клиента ---
+    data = request.get_json()
+    # Если клиент не прислал значение, считаем 10.0
+    battery_power = data.get('battery_voltage', 10.0) 
+    
     was_on = lab_state['current_on']
     is_on = not was_on
     lab_state['current_on'] = is_on
@@ -29,11 +34,12 @@ def api_toggle_switch():
     
     if is_on != was_on:
         if is_on:
-            voltage = 10.0
+            # Напряжение теперь равно мощности батареи
+            voltage = float(battery_power)
             message = "ИМПУЛЬС (ВКЛЮЧЕНИЕ)!"
             lab_state['success_count'] += 1
         else:
-            voltage = -10.0
+            voltage = -float(battery_power)
             message = "ИМПУЛЬС (ВЫКЛЮЧЕНИЕ)!"
             lab_state['success_count'] += 1
             
